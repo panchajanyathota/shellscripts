@@ -8,3 +8,17 @@ host verfication error will came
  :wq
  
  again run above command it works.
+ 
+ pscp .\abc.txt root@233.35.55.4:/home/usr
+ 
+ yes pres enter
+ pwd; enter
+ copy get succesful
+ 
+ 
+ remote linux to windows local
+ 
+ pscp username@192.12.223.2:/erc/hosts C:/temp/exmaple.txt enter
+ 
+ done
+ 
