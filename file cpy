@@ -1,0 +1,10 @@
+scp -i .vagarant/machines/tomcat_centos6/virtualbox/privatekey tomcatscript.tgz vagrant@192.168.9.0:/home//vagrant
+
+host verfication error will came
+ to solve it
+ 
+ root>  vim ~/.ssh/known_hosts
+ delete all content inside the file
+ :wq
+ 
+ again run above command it works.
