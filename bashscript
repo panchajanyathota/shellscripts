@@ -1,0 +1,135 @@
+Bash Script to Test IP Range (Ping, nslookup, SSH and RDP Connectivity)
+#!/bin/bash
+##################################################################
+#   This script is to test ip addresses in a range
+#   (a) Checks Ping Response
+#   (b) Checks for DNS Entries (Reverse Lookup)
+#   (c) checks for SSH Connection – Tests Port 22 is open
+#   (d) Checks for RDP Connection – Tests Port 3389 is open
+#  
+################################################################## 
+# Setting Enviroment Variables
+MINPARAMS=4
+SEARCHIPRANGE=$1
+STARTINGIPADDRESS=$2
+ENDINGIPADDRESS=$3
+NSLOOKUPSERVER=$4
+USERID=$5
+LSSHPORT=22
+WRDPPORT=3389
+OUTPUTFILENAME=IPTestResults.txt
+#echo $SEARCHIPRANGE
+#echo $STARTINGIPADDRESS
+#echo $ENDINGIPADDRESS
+tput clear
+if [ $# -lt “$MINPARAMS” ]
+then
+   echo “To run this script you need at least 5 command-line arguments”
+   exit 0
+fi
+if [ -z “$1” ]; then
+   echo “Invalid IP Range specified”
+   echo “Example: 10.252.2”
+   exit 0
+fi
+if [ -z “$2” ]; then
+   echo “Invalid Starting IP Address, specify 4 octect, valid numbers 1 to 254”
+   echo “Example: 100”
+   exit 0
+fi
+if [ -z “$3” ]; then
+   echo “Invalid Ending IP Address, specify 4 octect, valid numbers 1 to 254”
+   echo “Example: 110”
+   exit 0
+fi
+if [ “$3” -lt “$2” ]; then
+   echo “Invalid Ending IP Address, specify 4 octect, greater than or equal starting range $2”
+   exit 0
+fi
+if [ -z “$4” ]; then
+   echo “Invalid DNS or NSLOOKUP server address”
+   exit 0
+fi
+#if [ -z “$5” ]; then
+#   echo “Invalid user name for login for testing ssh access”
+#   exit 0
+#fi
+F1=`echo $1 | awk ‘BEGIN { FS = “.” } ; { print $1 }’`
+F2=`echo $1 | awk ‘BEGIN { FS = “.” } ; { print $2 }’`
+F3=`echo $1 | awk ‘BEGIN { FS = “.” } ; { print $3 }’`
+F4=`echo $1 | awk ‘BEGIN { FS = “.” } ; { print $4 }’`
+echo $F1 $F2 $F3
+if [ -z ${F1} ] || [ ${F1} -lt 1 ] || [ ${F1} -gt 254 ]; then
+   echo “$F1 Invalid First Octect”
+   exit 0
+elif [ -z ${F2} ] || [ ${F2} -lt 1 ] || [ ${F2} -gt 254 ]; then
+   echo “Invalid Second Octect”
+   exit 0
+elif [ -z ${F3} ] || [ ${F3} -lt 1 ] || [ ${F3} -gt 254 ]; then
+   echo “Invalid Third Octect”
+   exit 0
+elif [ ! -z ${F4} ]; then
+   echo “Fourth Octect is not applicable for testing”
+   exit 0
+else
+   echo “Valid IP Range Provided… Test in Progress”
+fi
+#echo “Search Range : ${SEARCHIPRANGE}”
+#echo “Starting IP  : ${STARTINGIPADDRESS}”
+#echo “Ending IP    : ${ENDINGIPADDRESS}”
+#echo “Searching IP : $SEARCHIPRANGE.$STARTINGIPADDRESS”
+#echo “……”
+INCR=”$STARTINGIPADDRESS”
+ 
+while [ $INCR -le $ENDINGIPADDRESS ]
+do
+     echo “Now Verifying ….. $SEARCHIPRANGE.$INCR”;echo
+#
+# Verify Ping Request
+#
+    echo “Now Testing Ping Response for $SEARCHIPRANGE.$INCR”; echo
+    ping -c 1 $SEARCHIPRANGE.$INCR | awk ‘$1==”PING” {s=$1 ” ” $2} END {print s}’ >> $OUTPUTFILENAME
+    ping -c 1 $SEARCHIPRANGE.$INCR | awk ‘$3==”icmp_seq=1″ {s=$4 ” ” $5 ” ” $6} END {print s}’ >> $OUTPUTFILENAME
+#
+# Verify NSLOOKUP Records
+#
+    echo “Now Testing DNS Record for $SEARCHIPRANGE.$INCR”; echo
+    HOSTNA=`nslookup $SEARCHIPRANGE.$INCR $NSLOOKUPSERVER | grep NXDOMAIN | awk ‘{print $5 $6}’`
+    echo ${HOSTNA}
+    if [ ! -z ${HOSTNA} ]; then
+ clear
+ echo “Test Results for IP Address: $SEARCHIPRANGE.$INCR ….”
+ echo
+        ping -c 1 $SEARCHIPRANGE.$INCR
+        nslookup $SEARCHIPRANGE.$INCR $NSLOOKUPSERVER
+        #import -window root $INCR.jpg | nslookup $SEARCHIPRANGE.$INCR$NSLOOKUPSERVER
+    fi
+#
+# Testing SSH port is Listening
+#
+    echo “Now Testing Linux SSH Port for ${SEARCHIPRANGE}.${INCR}”; echo
+    HOSTRESPONSE=`nc -z ${SEARCHIPRANGE}.${INCR} ${LSSHPORT}; echo $?`
+    if [ “$HOSTRESPONSE” -eq 0 ]; then
+  echo “${SEARCHIPRANGE}.${INCR} Hosts SSH $LSSHPORT port is accessible”
+  echo
+    else
+  echo “${SEARCHIPRANGE}.${INCR} Hosts SSH ${LSSHPORT} port is NOT accessible”
+  echo
+    fi
+#
+# Testing RDP port is Listening
+#
+    echo “Now Testing Windows RDP Port for ${SEARCHIPRANGE}.${INCR}”; echo
+    HOSTRESPONSE=`nc -z ${SEARCHIPRANGE}.${INCR} ${WRDPPORT}; echo $?`
+    if [ “$?” -eq 0 ]; then
+  echo “${SEARCHIPRANGE}.${INCR} Hosts RDP ${WRDPPORT} port is accessible”
+  echo
+    else
+  echo “${SEARCHIPRANGE}.${INCR} Hosts RDP ${WRDPPORT} port is NOT accessible”
+  echo
+    fi
+ import -window root $INCR.jpg
+    INCR=$[$INCR+1]
+ clear
+    echo “Next IP is: ${SEARCHIPRANGE}.${INCR}”
+done
